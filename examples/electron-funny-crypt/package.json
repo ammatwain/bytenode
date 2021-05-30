@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "main": "main.js",
+  "directories": {
+    "buildResources": "buildResources"
+  },
   "scripts": {
     "start": "electron ."
   },

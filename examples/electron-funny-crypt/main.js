@@ -22,6 +22,7 @@ function createWindow() {
     {
       width: 800,
       height: 600,
+      icon: __dirname + "buildResources/icons/icon-512x512.png",
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -31,17 +32,17 @@ function createWindow() {
   );
 
   mainWindow.loadFile('index.html');
-
+  mainWindow.removeMenu();
   setInterval(function () {
-    let randomString = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    let randomString =  Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     let encrypedString = funnyCrypt(randomString);
     let decrypedString = funnyCrypt(encrypedString);
     mainWindow.webContents.send('set-html',
       `ORIGINAL RANDOM STRING ... : ${randomString}\n\n`+
-      `ENCRYPED STRING .......... : ${encrypedString}\n\n`+
-      `DECRYPED STRING .......... : ${decrypedString}\n\n`
+      `ENCRYPTED STRING ......... : ${encrypedString}\n\n`+
+      `DECRYPTED STRING ......... : ${decrypedString}\n\n`
     );
-  }, 1000);
+  }, 100);
 
   mainWindow.on('close', _ => {
     mainWindow = null;
