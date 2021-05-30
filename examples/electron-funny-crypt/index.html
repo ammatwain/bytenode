@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Funny Crypt</title>
+</head>
+
+<body>
+  <pre id="page"></pre>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    ipcRenderer.on('set-html', (event, data) => {
+      document.querySelector('#page').innerHTML = data;
+    });
+
+  </script>
+</body>
+
+</html>

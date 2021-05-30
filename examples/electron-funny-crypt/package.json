@@ -1,0 +1,12 @@
+{
+  "name": "electron-funny-crypt",
+  "version": "0.0.1",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^13.0.1"
+  }
+}
