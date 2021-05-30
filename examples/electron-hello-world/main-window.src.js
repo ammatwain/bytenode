@@ -18,13 +18,22 @@ let mainWindow;
 
 function createWindow() {
 
-  mainWindow = new BrowserWindow({ width: 800, height: 600, webPreferences: { nodeIntegration: true } });
+  mainWindow = new BrowserWindow(
+    {
+      width: 800,
+      height: 600,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+        nodeIntegrationInWorker: true
+      }
+    }
+  );
 
   mainWindow.loadFile('index.html');
 
   setTimeout(function () {
-    if (Date.now() > 1234567891000) {
-
+    if (Date.now() > 21234567891000) {
       mainWindow.webContents.send('set-html', noHTML);
     } else {
       mainWindow.webContents.send('set-html', okHTML);
