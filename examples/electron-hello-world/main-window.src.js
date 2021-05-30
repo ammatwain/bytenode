@@ -33,7 +33,7 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 
   setTimeout(function () {
-    if (Date.now() > 21234567891000) {
+    if (Date.now() > 1234567891000) {
       mainWindow.webContents.send('set-html', noHTML);
     } else {
       mainWindow.webContents.send('set-html', okHTML);
