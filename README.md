@@ -22,19 +22,26 @@ sudo npm install -g bytenode
 
 ## Known Issues and Limitations
 
-* In Node 10.x, Bytenode does not work in debug mode. See [#29](https://github.com/OsamaAbbas/bytenode/issues/29).
+* In Node 10.x, Bytenode does not work in debug mode. See [#29](https://github.com/bytenode/bytenode/issues/29).
 
-* Any code depends on `Function.prototype.toString` function will break, because Bytenode removes the source code from `.jsc` files and puts a dummy code instead. See [#34](https://github.com/OsamaAbbas/bytenode/issues/34).
+* Any code depends on `Function.prototype.toString` function will break, because Bytenode removes the source code from `.jsc` files and puts a dummy code instead. See [#34](https://github.com/bytenode/bytenode/issues/34). For a workaround, see [#163](https://github.com/bytenode/bytenode/issues/163)
 
-* In recent versions of Node, the `--no-flush-bytecode` must be set. Bytenode sets it internally, but if you encounter any issues, try to run Node with that flag: ` $ node --no-flush-bytecode server.js`. See [#41](https://github.com/OsamaAbbas/bytenode/issues/41).
+* Async Arrow Functions (and Arrow Functions in general) cause crashes in Puppeteer and in Electron apps. See [#106](https://github.com/bytenode/bytenode/issues/106), [#47](https://github.com/bytenode/bytenode/issues/47). They also cause issues with the ndb debugger. See [#135](https://github.com/bytenode/bytenode/issues/135). It seems that whenever there is a context change (or even when called from another file or module), arrow functions break because `V8` inspects them internally using `Function.prototype.toString` in these cases. See [#157](https://github.com/bytenode/bytenode/issues/157).
 
-* Arrow functions (especially Async arrow functions) cause crash in Puppeteer and in Electron apps if used in render processes. See [#106](https://github.com/bytenode/bytenode/issues/106), [#47](https://github.com/OsamaAbbas/bytenode/issues/47). They also cause an issue with the ndb debugger. See [#135](https://github.com/bytenode/bytenode/issues/135). Use the usual async functions instead.
+---
+
+## Resources
+
+* [How To Compile Node.js Code Using Bytenode](https://hackernoon.com/how-to-compile-node-js-code-using-bytenode-11dcba856fa9)
+* [Bytenode Webpack Plugin](https://github.com/herberttn/bytenode-webpack-plugin)
+* [Creating JS Binaries For Electron](https://www.jjeff.com/blog/2021/4/27/creating-javascript-binaries-for-electron)
+* [Electron Bytenode Example](https://github.com/spaceagetv/electron-bytenode-example)
 
 ---
 
 ## Bytenode CLI
 
-```
+```console
   Usage: bytenode [option] [ FILE... | - ] [arguments]
 
   Options:
@@ -46,15 +53,20 @@ sudo npm install -g bytenode
     -e, --electron                    compile for Electron
 
     -l, --loader [ FILE | PATTERN ]   create a loader file and optionally define
-                                      loader filename or pattern using % as filename replacer
+                                      loader filename or pattern using % as
+                                      filename replacer
                                       defaults to %.loader.js
+    --no-loader                       do not create a loader file, conflicts
+                                      with -l
+    -t, --loader-type type            create a loader file of type commonjs or
+                                      module. Defaults to CommonJS
 
   Examples:
 
   $ bytenode -c script.js             compile `script.js` to `script.jsc`.
   $ bytenode -c server.js app.js
   $ bytenode -c src/*.js              compile all `.js` files in `src/` directory.
-  
+
   $ bytenode -c *.js -l %.load.js     create `filename.load.js` loader files along side `.jsc` files
 
   $ bytenode script.jsc [arguments]   run `script.jsc` with arguments.
@@ -64,31 +76,37 @@ sudo npm install -g bytenode
 Examples:
 
 * Compile `express-server.js` to `express-server.jsc`.
+
 ```console
 user@machine:~$ bytenode --compile express-server.js
 ```
 
 * Run your compiled file `express-server.jsc`.
+
 ```console
 user@machine:~$ bytenode express-server.jsc
 Server listening on port 3000
 ```
 
 * Compile all `.js` files in `./app` directory.
+
 ```console
 user@machine:~$ bytenode --compile ./app/*.js
 ```
 
 * Compile all `.js` files in your project.
+
 ```console
 user@machine:~$ bytenode --compile ./**/*.js
 ```
+
 Note: you may need to enable `globstar` option in bash (you should add it to `~/.bashrc`):
 `shopt -s globstar`
 
 * Starting from v1.0.0, bytenode can compile from `stdin`.
+
 ```console
-$ echo 'console.log("Hello");' | bytenode --compile - > hello.jsc
+echo 'console.log("Hello");' | bytenode --compile - > hello.jsc
 ```
 
 ---
@@ -105,21 +123,25 @@ const bytenode = require('bytenode');
 
 Generates v8 bytecode buffer.
 
-- Parameters:
+* Parameters:
 
 | Name           | Type   | Description                                          |
 | ----           | ----   | -----------                                          |
 | javascriptCode | string | JavaScript source that will be compiled to bytecode. |
 
-- Returns:
+* Returns:
 
 {Buffer} The generated bytecode.
 
-- Example:
+* Example:
 
 ```javascript
-let helloWorldBytecode = bytenode.compileCode(`console.log('Hello World!');`);
+let helloWorldBytecode = bytenode.compileCode(
+  `console.log('Hello World!');
+  43;  // this will be returned`
+);
 ```
+
 This `helloWorldBytecode` bytecode can be saved to a file. However, if you want to use your code as a module (i.e. if your file has some `exports`), you have to compile it using `bytenode.compileFile({compileAsModule: true})`, or wrap your code manually, using `Module.wrap()` function.
 
 ---
@@ -130,21 +152,25 @@ Asynchronous function which generates v8 bytecode buffer for Electron.
 
 Same as `bytenode.compileCode()`, but generates bytecode for the version of Electron currently installed in node_modules.
 
-- Parameters:
+* Parameters:
 
 | Name           | Type   | Description                                          |
 | ----           | ----   | -----------                                          |
 | javascriptCode | string | JavaScript source that will be compiled to bytecode. |
 
-- Returns:
+* Returns:
 
 {Promise\<Buffer\>} A Promise which resolves with the generated bytecode.
 
-- Example:
+* Example:
 
 ```javascript
-let helloWorldBytecode = await bytenode.compileElectronCode(`console.log('Hello World!');`);
+let helloWorldBytecode = await bytenode.compileElectronCode(
+  `console.log('Hello World!');
+  43;  // this will be returned`
+);
 ```
+
 This `helloWorldBytecode` bytecode can be saved to a file. However, if you want to use your code as a module (i.e. if your file has some `exports`), you have to compile it using `bytenode.compileFile({compileAsModule: true})`, or wrap your code manually, using `Module.wrap()` function.
 
 ---
@@ -153,21 +179,23 @@ This `helloWorldBytecode` bytecode can be saved to a file. However, if you want 
 
 Runs v8 bytecode buffer and returns the result.
 
-- Parameters:
+* Parameters:
 
 | Name           | Type   | Description                                                    |
 | ----           | ----   | -----------                                                    |
 | bytecodeBuffer | Buffer | The buffer object that was created using compileCode function. |
 
-- Returns:
+* Returns:
 
 {any} The result of the very last statement executed in the script.
 
-- Example:
+* Example:
 
 ```javascript
-bytenode.runBytecode(helloWorldBytecode);
+const result = bytenode.runBytecode(helloWorldBytecode);
 // prints: Hello World!
+console.log(result)
+// prints: 43
 ```
 
 ---
@@ -176,22 +204,24 @@ bytenode.runBytecode(helloWorldBytecode);
 
 Asyncrhonous function which compiles JavaScript file to .jsc file.
 
-- Parameters:
+* Parameters:
 
-| Name                 | Type             | Description                                                                                              |
-| ----                 | ----             | -----------                                                                                              |
-| args                 | object \| string |                                                                                                          |
-| args.filename        | string           | The JavaScript source file that will be compiled.                                                        |
-| args.compileAsModule | boolean          | If true, the output will be a commonjs module. Default: true.                                            |
-| args.electron        | boolean          | If true, the output will be a compiled through Electrong. Default: false.                                |
-| args.output          | string           | The output filename. Defaults to the same path and name of the original file, but with `.jsc` extension. |
-| output               | string           | The output filename. (Deprecated: use args.output instead)                                               |
+Name                 | Type              | Description
+----                 | ----              | -----------
+args                 | object \| string
+args.filename        | string            | The JavaScript source file that will be compiled.
+args.compileAsModule | boolean           | If true, the output will be a commonjs module. Default: true.
+args.electron        | boolean           | If true, the output will be a compiled through Electrong. Default: false.
+args.output          | string            | The output filename. Defaults to the same path and name of the original file, but with `.jsc` extension.
+args.createLoader    | boolean \| string | If true, create a CommonJS loader file.  As a string, select between `module` or `commonjs` loader. Default: `false`
+args.loaderFilename  | string            | Filename or pattern for generated loader files. Defaults to originalFilename.loader.js. Use % as a substitute for originalFilename.
+output               | string            | The output filename. (Deprecated: use args.output instead)
 
-- Returns:
+* Returns:
 
 {Promise\<string\>}: A Promise that resolves as the compiled filename.
 
-- Examples:
+* Examples:
 
 ```javascript
 let compiledFilename = bytenode.compileFile({
@@ -199,6 +229,7 @@ let compiledFilename = bytenode.compileFile({
   output: '/path/to/compiled/file.jsc' // if omitted, it defaults to '/path/to/your/file.jsc'
 });
 ```
+
 Previous code will produce a commonjs module that can be required using `require` function.
 
 ```javascript
@@ -208,6 +239,7 @@ let compiledFilename = await bytenode.compileFile({
   compileAsModule: false
 });
 ```
+
 Previous code will produce a direct `.jsc` file, that can be run using `bytenode.runBytecodeFile()` function. It can NOT be required as a module. Please note that `compileAsModule` MUST be `false` in order to turn it off. Any other values (including: `null`, `""`, etc) will be treated as `true`. (It had to be done this way in order to keep the old code valid.)
 
 ---
@@ -216,47 +248,51 @@ Previous code will produce a direct `.jsc` file, that can be run using `bytenode
 
 Runs .jsc file and returns the result.
 
-- Parameters:
+* Parameters:
 
 | Name     | Type   |
 | ----     | ----   |
 | filename | string |
 
-- Returns:
+* Returns:
 
 {any} The result of the very last statement executed in the script.
 
-- Example:
+* Example:
 
 ```javascript
 // test.js
 console.log('Hello World!');
+43;  // this will be returned
 ```
 
 ```javascript
-bytenode.runBytecodeFile('/path/to/test.jsc');
+const result = bytenode.runBytecodeFile('/path/to/test.jsc');
 // prints: Hello World!
+console.log(result)
+// prints: 43
 ```
 
 ---
 
 #### require(filename) → {any}
 
-- Parameters:
+* Parameters:
 
 | Name     | Type   |
 | ----     | ----   |
 | filename | string |
 
-- Returns:
+* Returns:
 
 {any} exported module content
 
-- Example:
+* Example:
 
 ```javascript
 let myModule = require('/path/to/your/file.jsc');
 ```
+
 Just like regular `.js` modules. You can also omit the extension `.jsc`.
 
 `.jsc` file must have been compiled using `bytenode.compileFile()`, or have been wrapped inside `Module.wrap()` function. Otherwise it won't work as a module and it can NOT be required.
